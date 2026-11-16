@@ -43,7 +43,15 @@
       </thead>
       <tbody>
         <tr v-for="row in rows" :key="String(row.id)">
-          <td v-for="column in columns" :key="column">{{ row[column] ?? '—' }}</td>
+          <td v-for="column in columns" :key="column">
+            <RouterLink
+              v-if="column === '链接URL' && isShareUrl(row[column])"
+              :to="String(row[column])"
+            >
+              打开分享视图
+            </RouterLink>
+            <template v-else>{{ row[column] ?? '—' }}</template>
+          </td>
           <td>{{ row.status }}</td>
           <td class="row-actions">
             <button
@@ -55,6 +63,7 @@
             >
               {{ action }}
             </button>
+            <button class="link" type="button" @click="openChecklist(row)">核验清单</button>
           </td>
         </tr>
         <tr v-if="!rows.length">
@@ -62,6 +71,23 @@
         </tr>
       </tbody>
     </table>
+
+    <section v-if="checklist && checklistRow" class="combo-panel">
+      <h3>独立分享核验清单：{{ checklistRow['链接编号'] }}</h3>
+      <p v-if="checklist.combo" class="page-desc">
+        关联组合 {{ checklist.combo.comboId }}（{{ checklist.combo.versionLabel }}）· 同步看板版本：{{
+          checklist.combo.layoutId
+        }}
+        当前分享 {{ checklist.combo.versionLabel }} · 图表组来源「{{ checklist.combo.chartGroupRaw }}」
+      </p>
+      <ul class="checklist">
+        <li v-for="item in checklist.items" :key="item.name">
+          <span class="badge" :class="item.state">{{ stateLabel(item.state) }}</span>
+          <strong>{{ item.name }}</strong>
+          <span>{{ item.detail }}</span>
+        </li>
+      </ul>
+    </section>
 
     <footer class="page-foot">
       <span>共 {{ total }} 条分享管理记录</span>
@@ -79,6 +105,7 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { buildShareChecklist, type ShareChecklistResult } from '@/api/dashboard-combo'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('sharelink')
@@ -98,6 +125,36 @@ const statusSummary = computed(() =>
     count: rows.value.filter((row) => String(row.status) === status).length,
   })),
 )
+
+const checklist = ref<ShareChecklistResult | null>(null)
+const checklistRow = ref<EntryRow | null>(null)
+
+function isShareUrl(value: unknown): boolean {
+  return typeof value === 'string' && value.startsWith('/share/view/')
+}
+
+function stateLabel(state: 'ok' | 'warn' | 'fail'): string {
+  if (state === 'ok') {
+    return '通过'
+  }
+  if (state === 'warn') {
+    return '关注'
+  }
+  return '未通过'
+}
+
+function openChecklist(row: EntryRow) {
+  errorMessage.value = ''
+  const result = buildShareChecklist(Number(row.id))
+  if (!result.ok) {
+    checklist.value = null
+    checklistRow.value = null
+    errorMessage.value = result.message ?? '无法生成核验清单'
+    return
+  }
+  checklist.value = result
+  checklistRow.value = row
+}
 
 function resetFilters() {
   filters.value = {}

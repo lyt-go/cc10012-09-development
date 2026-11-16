@@ -18,6 +18,7 @@ const Permission = () => import('@/views/permission/index.vue')
 const Taggroup = () => import('@/views/taggroup/index.vue')
 const Resulteval = () => import('@/views/resulteval/index.vue')
 const Sharelink = () => import('@/views/sharelink/index.vue')
+const ShareView = () => import('@/views/shareview/index.vue')
 
 const router = createRouter({
   history: createWebHistory(),
@@ -40,6 +41,7 @@ const router = createRouter({
     { path: '/taggroup', name: 'taggroup', component: Taggroup },
     { path: '/resulteval', name: 'resulteval', component: Resulteval },
     { path: '/sharelink', name: 'sharelink', component: Sharelink },
+    { path: '/share/view/:comboId', name: 'share-view', component: ShareView },
   ],
 })
 
